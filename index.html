@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>LegacySound | Where Sound Becomes Legacy</title>
-  <!-- Google Fonts + Tailwind + Framer Motion CDN (static build, all-in-one) -->
+  <!-- Google Fonts + Tailwind CDN (static, reliable) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- custom config override for dark mode & luxe feel -->
+  <!-- custom override config for dark luxurious feel -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&family=Syne:wght@400;500;600;700;800&display=swap');
     
@@ -29,7 +29,7 @@
       letter-spacing: -0.02em;
     }
     
-    /* custom neon & waveform aesthetics */
+    /* custom glow + glass + audio wave */
     .neon-glow {
       box-shadow: 0 0 8px rgba(139, 92, 246, 0.5), 0 0 2px rgba(59,130,246,0.3);
     }
@@ -38,20 +38,23 @@
       transition: all 0.2s ease;
     }
     .wave-bg {
-      background: radial-gradient(circle at 20% 50%, rgba(88, 28, 135, 0.2) 0%, rgba(5,5,10,1) 70%);
+      background: radial-gradient(circle at 20% 50%, rgba(88, 28, 135, 0.25) 0%, rgba(5,5,10,1) 80%);
     }
     .glass-card {
-      background: rgba(15, 15, 25, 0.6);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(139, 92, 246, 0.2);
+      background: rgba(15, 15, 25, 0.65);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.25);
       border-radius: 2rem;
+      transition: all 0.2s ease;
+    }
+    .glass-card:hover {
+      border-color: rgba(139, 92, 246, 0.6);
     }
     .audio-wave {
       background: repeating-linear-gradient(90deg, #a855f7, #3b82f6 10px, #a855f7 20px);
       height: 2px;
       width: 100%;
     }
-    /* custom scroll */
     ::-webkit-scrollbar {
       width: 6px;
     }
@@ -63,24 +66,61 @@
       border-radius: 10px;
     }
     .artist-card {
-      transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
     }
     .artist-card:hover {
-      transform: translateY(-8px);
+      transform: translateY(-6px);
     }
     button, a, .cursor-pointer {
       transition: all 0.2s ease;
     }
+    .toast-message {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1a2f;
+      backdrop-filter: blur(12px);
+      border: 1px solid #a855f7;
+      border-radius: 2rem;
+      padding: 0.75rem 1.5rem;
+      color: white;
+      font-weight: 500;
+      z-index: 999;
+      box-shadow: 0 0 20px rgba(139,92,246,0.3);
+      animation: fadeInUp 0.3s ease forwards;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+    .mobile-nav-open {
+      display: flex !important;
+      flex-direction: column;
+      position: fixed;
+      top: 80px;
+      left: 0;
+      right: 0;
+      background: rgba(5,5,10,0.95);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem;
+      gap: 1.2rem;
+      border-bottom: 1px solid #7c3aed;
+      z-index: 40;
+    }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/framer-motion/10.16.4/framer-motion.js"></script>
-  <!-- simple audio preview placeholder (WaveSurfer not needed - inline audio) -->
 </head>
 <body class="bg-[#05050A] overflow-x-hidden">
   <div id="root"></div>
 
-  <!-- full SPA implementation using vanilla JS + component state (no React but fully functional modern SPA) -->
   <script>
-    // ---------- SPA ROUTER ----------
+    // ---------- SPA ROUTER & STATE (fully functional for Vercel hosting) ----------
     const pages = {
       home: HomePage,
       about: AboutPage,
@@ -95,13 +135,34 @@
 
     let currentPage = 'home';
     let appContainer = null;
+    let activeToastTimer = null;
+
+    function showToast(message) {
+      if (activeToastTimer) clearTimeout(activeToastTimer);
+      const existingToast = document.querySelector('.toast-message');
+      if (existingToast) existingToast.remove();
+      const toast = document.createElement('div');
+      toast.className = 'toast-message';
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      activeToastTimer = setTimeout(() => {
+        if (toast && toast.remove) toast.remove();
+      }, 3000);
+    }
 
     function navigateTo(page, pushState = true) {
       if (!pages[page]) page = 'home';
       currentPage = page;
-      if (pushState) history.pushState({ page }, '', `#${page}`);
+      if (pushState) {
+        history.pushState({ page }, '', `#${page}`);
+      }
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      // close mobile menu if open
+      const mobileMenuDiv = document.getElementById('mobile-menu-panel');
+      if (mobileMenuDiv && mobileMenuDiv.classList.contains('mobile-nav-open')) {
+        mobileMenuDiv.classList.remove('mobile-nav-open');
+      }
     }
 
     function render() {
@@ -113,10 +174,28 @@
         appContainer.innerHTML = HomePage();
       }
       attachGlobalEventListeners();
+      attachMobileMenuHandler();
+    }
+
+    function attachMobileMenuHandler() {
+      const menuBtn = document.getElementById('mobileMenuBtn');
+      const mobilePanel = document.getElementById('mobile-menu-panel');
+      if (menuBtn && mobilePanel) {
+        menuBtn.onclick = (e) => {
+          e.stopPropagation();
+          mobilePanel.classList.toggle('mobile-nav-open');
+        };
+        // close on link click inside mobile nav
+        mobilePanel.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => {
+            mobilePanel.classList.remove('mobile-nav-open');
+          });
+        });
+      }
     }
 
     function attachGlobalEventListeners() {
-      // nav links
+      // navigation links (desktop + mobile)
       document.querySelectorAll('[data-nav]').forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
@@ -124,33 +203,76 @@
           navigateTo(page);
         });
       });
-      // demo CTA audio preview toggle mock
+      
+      // audio preview buttons
       document.querySelectorAll('.play-preview-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const audioId = btn.getAttribute('data-track');
-          const audio = document.getElementById(audioId);
-          if (audio) {
-            if (audio.paused) audio.play();
-            else audio.pause();
+        // remove previous listeners to avoid duplicates
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const trackId = newBtn.getAttribute('data-track');
+          if (trackId) {
+            const audio = document.getElementById(trackId);
+            if (audio) {
+              if (audio.paused) {
+                // pause all other playing audios for cleaner experience
+                document.querySelectorAll('audio').forEach(a => { if (!a.paused && a !== audio) a.pause(); });
+                audio.play().catch(e => console.log("autoplay blocked?"));
+                newBtn.innerText = '⏸ Pause';
+              } else {
+                audio.pause();
+                newBtn.innerText = '▶ Preview track';
+              }
+              audio.onended = () => { newBtn.innerText = '▶ Preview track'; };
+            }
           }
         });
       });
-      // submit forms handling (prevent default + show toast)
+      
+      // All forms: submit handling with validation + toast
       const forms = document.querySelectorAll('.app-form');
       forms.forEach(form => {
-        form.addEventListener('submit', (e) => {
+        form.removeEventListener('submit', form._listener);
+        const submitHandler = (e) => {
           e.preventDefault();
-          alert('✨ Demo submitted / application received. Our A&R team will reach out within 48h.');
+          // basic check if email field present but not critical
+          showToast('✨ Thank you! Our team will get back to you within 48h.');
           form.reset();
-        });
+        };
+        form._listener = submitHandler;
+        form.addEventListener('submit', submitHandler);
       });
+
+      // special subscribe button in footer
+      const subscribeBtn = document.querySelector('#subscribe-footer-btn');
+      if (subscribeBtn) {
+        subscribeBtn.addEventListener('click', () => {
+          const emailInput = document.querySelector('#footer-subscribe-email');
+          if (emailInput && emailInput.value.trim()) {
+            showToast('📬 Subscribed! You’ll receive exclusive updates.');
+            emailInput.value = '';
+          } else if (emailInput) {
+            showToast('Please enter an email address.');
+          }
+        });
+      }
+
+      // additional dashboard file upload mock (non-functional just UX demo)
+      const fakeUpload = document.querySelector('#fake-upload-btn');
+      if (fakeUpload) {
+        fakeUpload.addEventListener('click', () => {
+          showToast('🎵 Demo upload simulation — full feature in artist portal (coming soon).');
+        });
+      }
     }
 
-    // ----- HELPER COMPONENTS (JSX like string templates) -----
-    const Header = () => `
+    // ----- COMPONENT TEMPLATES -----
+    const Header = () => {
+      return `
       <header class="fixed top-0 left-0 w-full z-50 px-6 md:px-12 py-5 bg-[#05050A]/80 backdrop-blur-xl border-b border-purple-900/30">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-          <div class="flex items-center gap-2 cursor-pointer" data-nav="home">
+          <div class="flex items-center gap-2 cursor-pointer group" data-nav="home">
             <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-blue-600 neon-glow"></div>
             <span class="text-2xl font-display font-extrabold tracking-tight bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">LEGACYSOUND</span>
           </div>
@@ -165,27 +287,42 @@
             <a href="#" data-nav="contact" class="hover:text-purple-400 transition">Contact</a>
           </nav>
           <div class="flex gap-3">
-            <a href="#" data-nav="dashboard" class="hidden md:block px-5 py-2 rounded-full border border-purple-500/60 text-sm hover:bg-purple-600/20">Artist Portal</a>
-            <button class="md:hidden text-white" id="mobileMenuBtn">☰</button>
+            <a href="#" data-nav="dashboard" class="hidden md:block px-5 py-2 rounded-full border border-purple-500/60 text-sm hover:bg-purple-600/20 transition">Artist Portal</a>
+            <button id="mobileMenuBtn" class="md:hidden text-white text-2xl focus:outline-none">☰</button>
+          </div>
+        </div>
+        <!-- Mobile menu panel -->
+        <div id="mobile-menu-panel" class="hidden md:hidden bg-[#05050A]/95 backdrop-blur-xl w-full left-0 px-6 pb-6 pt-2 border-b border-purple-800/40">
+          <div class="flex flex-col space-y-4 text-base font-medium mt-2">
+            <a href="#" data-nav="home" class="py-2 hover:text-purple-400">Home</a>
+            <a href="#" data-nav="about" class="py-2 hover:text-purple-400">About</a>
+            <a href="#" data-nav="artists" class="py-2 hover:text-purple-400">Artists</a>
+            <a href="#" data-nav="services" class="py-2 hover:text-purple-400">Services</a>
+            <a href="#" data-nav="hire" class="py-2 hover:text-purple-400">Hire Us</a>
+            <a href="#" data-nav="join" class="py-2 hover:text-purple-400">Submit Demo</a>
+            <a href="#" data-nav="careers" class="py-2 hover:text-purple-400">Careers</a>
+            <a href="#" data-nav="contact" class="py-2 hover:text-purple-400">Contact</a>
+            <a href="#" data-nav="dashboard" class="py-2 border-t border-purple-800/40 pt-3 text-purple-300">Artist Portal</a>
           </div>
         </div>
       </header>
-    `;
+      `;
+    };
 
     const Footer = () => `
       <footer class="border-t border-purple-900/30 py-12 mt-24 px-6 bg-black/40">
         <div class="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
-          <div><span class="text-2xl font-bold">LEGACYSOUND</span><p class="text-gray-400 text-sm mt-2">© 2025 — Global Music Collective. African-rooted, worldwide vision.</p></div>
-          <div><h4 class="font-bold mb-3">Explore</h4><ul class="space-y-2 text-gray-300 text-sm"><li><a href="#" data-nav="artists">Artists</a></li><li><a href="#" data-nav="services">Services</a></li><li><a href="#" data-nav="hire">Client Portal</a></li></ul></div>
+          <div><span class="text-2xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 bg-clip-text text-transparent">LEGACYSOUND</span><p class="text-gray-400 text-sm mt-2">© 2025 — Global Music Collective. African-rooted, worldwide vision.</p></div>
+          <div><h4 class="font-bold mb-3">Explore</h4><ul class="space-y-2 text-gray-300 text-sm"><li><a href="#" data-nav="artists" class="hover:text-purple-300">Artists</a></li><li><a href="#" data-nav="services" class="hover:text-purple-300">Services</a></li><li><a href="#" data-nav="hire" class="hover:text-purple-300">Client Portal</a></li></ul></div>
           <div><h4 class="font-bold mb-3">Connect</h4><ul class="space-y-2 text-gray-300 text-sm"><li>hello@legacysound.global</li><li>Nairobi / LA / London</li><li>IG: @legacysound</li></ul></div>
-          <div><h4 class="font-bold mb-3">Subscribe</h4><input type="email" placeholder="your@email.com" class="w-full p-2 rounded bg-white/10 border border-purple-500/40 text-sm"><button class="mt-2 w-full py-2 bg-purple-700 rounded-md text-sm">Stay tuned</button></div>
+          <div><h4 class="font-bold mb-3">Subscribe</h4><div class="flex gap-2"><input type="email" id="footer-subscribe-email" placeholder="your@email.com" class="flex-1 p-2 rounded-xl bg-white/10 border border-purple-500/40 text-sm"><button id="subscribe-footer-btn" class="px-4 py-2 bg-purple-700 rounded-xl text-sm font-medium hover:bg-purple-600 transition">Join</button></div></div>
         </div>
       </footer>
     `;
 
-    const WaveBg = () => `<div class="absolute inset-0 overflow-hidden pointer-events-none"><div class="wave-bg w-full h-full opacity-40"></div><div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#05050A] to-transparent"></div></div>`;
+    const WaveBg = () => `<div class="absolute inset-0 overflow-hidden pointer-events-none"><div class="wave-bg w-full h-full opacity-50"></div><div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#05050A] to-transparent"></div></div>`;
 
-    // ---- PAGE DEFINITIONS ----
+    // ----- PAGE SECTIONS (fully functional demo content)-----
     function HomePage() {
       return `
         ${Header()}
@@ -205,38 +342,39 @@
             <div class="absolute right-0 top-1/4 w-96 h-96 bg-purple-600/20 blur-[100px] rounded-full"></div>
           </section>
 
-          <!-- Featured artists -->
           <section class="max-w-7xl mx-auto px-6 py-24">
             <h2 class="text-4xl font-display font-bold mb-12 text-center">✧ Featured Artists ✧</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              ${['Zahara M.', 'The Alchemist', 'Nyah & The Echoes'].map((name, idx) => `
-                <div class="glass-card p-5 artist-card cursor-pointer hover:border-purple-500/50">
+              ${[
+                { name: 'Zahara M.', genre: 'Alternative / Soul', trackIdx: 'ft1' },
+                { name: 'The Alchemist', genre: 'Electronic / Trip-Hop', trackIdx: 'ft2' },
+                { name: 'Nyah & The Echoes', genre: 'Art Pop / Experimental', trackIdx: 'ft3' }
+              ].map((artist, idx) => `
+                <div class="glass-card p-5 artist-card">
                   <div class="h-64 bg-gradient-to-br from-purple-800 to-blue-800 rounded-2xl flex items-center justify-center text-6xl">🎧</div>
-                  <h3 class="text-2xl font-bold mt-4">${name}</h3>
-                  <p class="text-gray-400">Alternative / Electronic</p>
-                  <button class="play-preview-btn mt-4 text-purple-300 text-sm" data-track="track${idx}">▶ Preview track</button>
-                  <audio id="track${idx}" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${idx+1}.mp3" preload="none"></audio>
+                  <h3 class="text-2xl font-bold mt-4">${artist.name}</h3>
+                  <p class="text-gray-400">${artist.genre}</p>
+                  <button class="play-preview-btn mt-4 text-purple-300 text-sm border border-purple-500/40 px-4 py-1.5 rounded-full" data-track="track_${artist.trackIdx}">▶ Preview track</button>
+                  <audio id="track_${artist.trackIdx}" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${idx+1}.mp3" preload="none"></audio>
                 </div>
               `).join('')}
             </div>
           </section>
 
-          <!-- Services Preview -->
           <section class="max-w-7xl mx-auto px-6 py-16">
             <div class="grid md:grid-cols-4 gap-6 text-center">
-              ${['Music Production', 'Artist Management', 'Global Distribution', 'Sync Licensing'].map(s => `<div class="glass-card p-6"><div class="text-4xl mb-3">🎛️</div><h4 class="font-bold">${s}</h4><p class="text-sm text-gray-300 mt-2">Industry-leading ${s.toLowerCase()}.</p></div>`).join('')}
+              ${['Music Production', 'Artist Management', 'Global Distribution', 'Sync Licensing'].map(s => `<div class="glass-card p-6"><div class="text-4xl mb-3">🎛️</div><h4 class="font-bold text-lg">${s}</h4><p class="text-sm text-gray-300 mt-2">Industry-leading ${s.toLowerCase()}.</p></div>`).join('')}
             </div>
           </section>
 
-          <!-- Latest releases -->
           <section class="max-w-7xl mx-auto px-6 py-16">
             <h2 class="text-3xl font-bold mb-8">Latest Releases</h2>
             <div class="space-y-4">
-              ${['LOST SIGNALS - 3.2M streams', 'MIDNIGHT VELVET - 1.8M streams', 'ECHO CHAMBER (remix)'].map(track => `<div class="glass-card p-4 flex justify-between items-center"><span>🎵 ${track}</span><button class="text-purple-400">▶ Play preview</button></div>`).join('')}
+              ${['LOST SIGNALS - 3.2M streams', 'MIDNIGHT VELVET - 1.8M streams', 'ECHO CHAMBER (remix)'].map(track => `<div class="glass-card p-4 flex justify-between items-center"><span>🎵 ${track}</span><button class="text-purple-400 text-sm">▶ Quick play</button></div>`).join('')}
             </div>
           </section>
 
-          <div class="max-w-7xl mx-auto px-6 py-16 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 rounded-3xl text-center my-12 glass-card"><h3 class="text-3xl font-bold">Join the Next Wave of Global Talent</h3><a href="#" data-nav="join" class="inline-block mt-6 px-8 py-3 bg-purple-600 rounded-full">Apply Now →</a></div>
+          <div class="max-w-7xl mx-auto px-6 py-16 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 rounded-3xl text-center my-12 glass-card"><h3 class="text-3xl font-bold">Join the Next Wave of Global Talent</h3><a href="#" data-nav="join" class="inline-block mt-6 px-8 py-3 bg-purple-600 rounded-full hover:bg-purple-500 transition">Apply Now →</a></div>
           ${Footer()}
         </main>
       `;
@@ -261,43 +399,45 @@
         { name: "THE ORACLE", genre: "Hip-Hop / Experimental", bio: "Lyrical architect, global collaborator." }
       ];
       return `${Header()}<main class="pt-32 max-w-7xl mx-auto px-6"><h1 class="text-5xl font-bold mb-12 text-center">Our Roster</h1><div class="grid md:grid-cols-3 gap-8">
-      ${artistList.map(art => `<div class="glass-card p-6 artist-card"><div class="h-56 bg-gradient-to-tr from-purple-700 to-indigo-600 rounded-xl flex items-center justify-center text-5xl">🎤</div><h2 class="text-2xl font-bold mt-4">${art.name}</h2><p class="text-purple-300">${art.genre}</p><p class="text-sm text-gray-300 mt-2">${art.bio}</p><div class="flex gap-3 mt-4"><button class="play-preview-btn text-sm border border-purple-400/50 px-3 py-1 rounded-full">Preview track</button><a href="#" class="text-purple-400">Instagram →</a></div><audio src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="none"></audio></div>`).join('')}
+      ${artistList.map((art, idx) => `<div class="glass-card p-6 artist-card"><div class="h-56 bg-gradient-to-tr from-purple-700 to-indigo-600 rounded-xl flex items-center justify-center text-5xl">🎤</div><h2 class="text-2xl font-bold mt-4">${art.name}</h2><p class="text-purple-300">${art.genre}</p><p class="text-sm text-gray-300 mt-2">${art.bio}</p><div class="flex gap-3 mt-4"><button class="play-preview-btn text-sm border border-purple-400/50 px-3 py-1 rounded-full" data-track="artist_track_${idx}">Preview track</button><a href="#" class="text-purple-400">Instagram →</a></div><audio id="artist_track_${idx}" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${idx+1}.mp3" preload="none"></audio></div>`).join('')}
       </div>${Footer()}</main>`;
     }
 
     function ServicesPage() {
       const services = ['Music Production', 'Mixing & Mastering', 'Artist Development', 'Distribution', 'Sync Licensing (Film/Ads)'];
       return `${Header()}<main class="pt-32 max-w-7xl mx-auto px-6"><h1 class="text-5xl font-bold">Premier Services</h1><p class="text-gray-300 max-w-2xl mt-4">End-to-end music solutions tailored for labels, independent artists, and global brands.</p><div class="grid md:grid-cols-2 gap-8 my-16">
-      ${services.map(s => `<div class="glass-card p-8 flex flex-col gap-2"><div class="text-5xl">✨</div><h3 class="text-2xl font-bold">${s}</h3><p>High-end ${s.toLowerCase()} with industry veterans. From sonic branding to Dolby Atmos mixes.</p><a href="#" data-nav="hire" class="text-purple-400 mt-4 inline-block">Work With Us →</a></div>`).join('')}
+      ${services.map(s => `<div class="glass-card p-8 flex flex-col gap-2"><div class="text-5xl">✨</div><h3 class="text-2xl font-bold">${s}</h3><p>High-end ${s.toLowerCase()} with industry veterans. From sonic branding to Dolby Atmos mixes.</p><a href="#" data-nav="hire" class="text-purple-400 mt-4 inline-block font-semibold">Work With Us →</a></div>`).join('')}
       </div>${Footer()}</main>`;
     }
 
     function HirePage() {
-      return `${Header()}<main class="pt-32 max-w-7xl mx-auto px-6"><div class="grid md:grid-cols-2 gap-12"><div><h1 class="text-5xl font-bold">For Brands & Creators</h1><p class="text-xl mt-4">Sync licensing, original scores, sonic branding, and premium music production.</p><ul class="mt-8 space-y-3"><li>✓ 200+ successful sync placements (Netflix, Adidas, Apple)</li><li>✓ African talent edge — unique global sonic palette</li><li>✓ Fast turnaround, major-label quality</li></ul><a href="#" data-nav="contact" class="mt-8 inline-block px-8 py-3 bg-purple-600 rounded-full text-lg">Start a Project</a></div><div class="glass-card p-8"><h3 class="text-2xl font-bold">Past Work</h3><div class="mt-4 space-y-2"><p>🎬 "Nocturnal Africa" (Netflix Original) — score & supervision</p><p>📱 Nike "Afrobeat Runners" campaign</p><p>🎮 FIFA 24 soundtrack collaboration</p></div></div></div>${Footer()}</main>`;
+      return `${Header()}<main class="pt-32 max-w-7xl mx-auto px-6"><div class="grid md:grid-cols-2 gap-12"><div><h1 class="text-5xl font-bold">For Brands & Creators</h1><p class="text-xl mt-4">Sync licensing, original scores, sonic branding, and premium music production.</p><ul class="mt-8 space-y-3"><li>✓ 200+ successful sync placements (Netflix, Adidas, Apple)</li><li>✓ African talent edge — unique global sonic palette</li><li>✓ Fast turnaround, major-label quality</li></ul><a href="#" data-nav="contact" class="mt-8 inline-block px-8 py-3 bg-purple-600 rounded-full text-lg hover:shadow-purple-500/40 shadow transition">Start a Project</a></div><div class="glass-card p-8"><h3 class="text-2xl font-bold">Past Work</h3><div class="mt-4 space-y-2"><p>🎬 "Nocturnal Africa" (Netflix Original) — score & supervision</p><p>📱 Nike "Afrobeat Runners" campaign</p><p>🎮 FIFA 24 soundtrack collaboration</p></div></div></div>${Footer()}</main>`;
     }
 
     function JoinPage() {
-      return `${Header()}<main class="pt-32 max-w-2xl mx-auto px-6"><div class="glass-card p-10"><h1 class="text-4xl font-bold">Submit Your Demo</h1><p class="text-gray-300 mt-2">Get discovered by LegacySound A&R. We're looking for genre-defying artists.</p><form class="app-form space-y-5 mt-8"><input type="text" placeholder="Full name" class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40" required><input type="email" placeholder="Email" class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40" required><select class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40"><option>Genre: Pop</option><option>Afrobeat</option><option>Hip Hop</option><option>Electronic</option></select><input type="text" placeholder="Link to your track (SoundCloud/YouTube/Drive)" class="w-full p-3 rounded-xl bg-black/40"><button type="submit" class="w-full py-3 bg-purple-700 rounded-xl font-bold">Get Discovered →</button></form></div>${Footer()}</main>`;
+      return `${Header()}<main class="pt-32 max-w-2xl mx-auto px-6"><div class="glass-card p-10"><h1 class="text-4xl font-bold">Submit Your Demo</h1><p class="text-gray-300 mt-2">Get discovered by LegacySound A&R. We're looking for genre-defying artists.</p><form class="app-form space-y-5 mt-8"><input type="text" placeholder="Full name" class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40" required><input type="email" placeholder="Email" class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40" required><select class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40"><option>Genre: Pop</option><option>Afrobeat</option><option>Hip Hop</option><option>Electronic</option></select><input type="text" placeholder="Link to your track (SoundCloud/YouTube/Drive)" class="w-full p-3 rounded-xl bg-black/40 border"><button type="submit" class="w-full py-3 bg-purple-700 rounded-xl font-bold hover:bg-purple-600 transition">Get Discovered →</button></form></div>${Footer()}</main>`;
     }
 
     function CareersPage() {
-      return `${Header()}<main class="pt-32 max-w-4xl mx-auto px-6"><h1 class="text-5xl font-bold">Join the Collective</h1><p class="text-gray-300 mt-2">We're hiring producers, sound engineers, and creative visionaries.</p><div class="grid md:grid-cols-2 gap-6 my-12"><div class="glass-card p-6"><h3 class="text-xl font-bold">🎛️ Senior Producer</h3><p>Remote / Nairobi · Full-time</p><button class="mt-3 text-purple-400">Apply</button></div><div class="glass-card p-6"><h3 class="text-xl font-bold">🔊 Sound Engineer (Mixing)</h3><p>LA / London</p><button class="mt-3 text-purple-400">Apply</button></div><div class="glass-card p-6"><h3 class="text-xl font-bold">🎨 Creative Designer</h3><p>Global remote</p><button class="mt-3 text-purple-400">Apply</button></div></div><form class="app-form glass-card p-8 space-y-4"><h2 class="text-2xl font-bold">Send your application</h2><input placeholder="Name" class="w-full p-2 rounded bg-black/40 border"><input placeholder="Email" class="w-full p-2 rounded bg-black/40 border"><input placeholder="Role" class="w-full p-2 rounded bg-black/40 border"><textarea placeholder="Link to portfolio / resume" rows="3" class="w-full p-2 rounded bg-black/40 border"></textarea><button type="submit" class="bg-purple-600 p-3 rounded">Submit application</button></form>${Footer()}</main>`;
+      return `${Header()}<main class="pt-32 max-w-4xl mx-auto px-6"><h1 class="text-5xl font-bold">Join the Collective</h1><p class="text-gray-300 mt-2">We're hiring producers, sound engineers, and creative visionaries.</p><div class="grid md:grid-cols-2 gap-6 my-12"><div class="glass-card p-6"><h3 class="text-xl font-bold">🎛️ Senior Producer</h3><p>Remote / Nairobi · Full-time</p><button class="mt-3 text-purple-400 border border-purple-500/40 px-4 py-1.5 rounded-full">Apply</button></div><div class="glass-card p-6"><h3 class="text-xl font-bold">🔊 Sound Engineer (Mixing)</h3><p>LA / London</p><button class="mt-3 text-purple-400 border border-purple-500/40 px-4 py-1.5 rounded-full">Apply</button></div><div class="glass-card p-6"><h3 class="text-xl font-bold">🎨 Creative Designer</h3><p>Global remote</p><button class="mt-3 text-purple-400 border border-purple-500/40 px-4 py-1.5 rounded-full">Apply</button></div></div><form class="app-form glass-card p-8 space-y-4"><h2 class="text-2xl font-bold">Send your application</h2><input placeholder="Name" class="w-full p-2 rounded-xl bg-black/40 border border-purple-500/40"><input placeholder="Email" class="w-full p-2 rounded-xl bg-black/40 border"><input placeholder="Role" class="w-full p-2 rounded-xl bg-black/40 border"><textarea placeholder="Link to portfolio / resume" rows="3" class="w-full p-2 rounded-xl bg-black/40 border"></textarea><button type="submit" class="bg-purple-600 p-3 rounded-xl font-bold">Submit application</button></form>${Footer()}</main>`;
     }
+
     function ContactPage() {
-      return `${Header()}<main class="pt-32 max-w-5xl mx-auto px-6"><div class="grid md:grid-cols-2 gap-12"><div><h1 class="text-5xl font-bold">Let's connect</h1><p class="mt-4 text-gray-300">hello@legacysound.global<br>+1 (323) 677-8890<br>Los Angeles · Nairobi · London</p><div class="flex gap-5 mt-8"><span class="text-2xl cursor-pointer">📱 IG</span><span class="text-2xl">🐦 X</span><span class="text-2xl">🎵 TikTok</span></div></div><div class="glass-card p-8"><form class="app-form space-y-4"><input placeholder="Name" class="w-full p-3 rounded bg-black/40 border"><input placeholder="Email" class="w-full p-3 rounded bg-black/40 border"><textarea placeholder="Message" rows="4" class="w-full p-3 rounded bg-black/40 border"></textarea><button type="submit" class="w-full bg-purple-700 py-3 rounded-full">Send message</button></form></div></div>${Footer()}</main>`;
+      return `${Header()}<main class="pt-32 max-w-5xl mx-auto px-6"><div class="grid md:grid-cols-2 gap-12"><div><h1 class="text-5xl font-bold">Let's connect</h1><p class="mt-4 text-gray-300">hello@legacysound.global<br>+1 (323) 677-8890<br>Los Angeles · Nairobi · London</p><div class="flex gap-5 mt-8"><span class="text-2xl cursor-pointer hover:text-purple-400">📱 IG</span><span class="text-2xl hover:text-purple-400">🐦 X</span><span class="text-2xl hover:text-purple-400">🎵 TikTok</span></div></div><div class="glass-card p-8"><form class="app-form space-y-4"><input placeholder="Name" class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40"><input placeholder="Email" class="w-full p-3 rounded-xl bg-black/40 border"><textarea placeholder="Message" rows="4" class="w-full p-3 rounded-xl bg-black/40 border"></textarea><button type="submit" class="w-full bg-purple-700 py-3 rounded-full font-bold">Send message</button></form></div></div>${Footer()}</main>`;
     }
 
     function DashboardPage() {
-      return `${Header()}<main class="pt-32 max-w-4xl mx-auto px-6"><div class="glass-card p-8"><h1 class="text-4xl font-bold">Artist Portal Demo</h1><p class="text-gray-300 mt-1">Welcome back, emerging talent. Track your submissions, upload new music.</p><div class="mt-8 bg-black/40 p-6 rounded-2xl"><h3 class="text-xl font-semibold">📤 Upload new track</h3><form class="app-form mt-4 space-y-3"><input type="text" placeholder="Track title" class="w-full p-2 bg-white/5 border rounded"><input type="file" accept="audio/*"><button type="submit" class="bg-purple-600 px-6 py-2 rounded-full mt-2">Upload & Send for Review</button></form></div><div class="mt-6"><h3 class="font-bold">Submission history</h3><ul class="mt-2 space-y-2"><li>🎧 "Midnight Echo" — under review</li><li>🎧 "Sunrise" — approved (distribution Q3)</li></ul><p class="text-purple-300 mt-6">✉️ Direct messaging: A&R team will reach out within 2 days.</p></div></div>${Footer()}</main>`;
+      return `${Header()}<main class="pt-32 max-w-4xl mx-auto px-6"><div class="glass-card p-8"><h1 class="text-4xl font-bold">Artist Portal Demo</h1><p class="text-gray-300 mt-1">Welcome back, emerging talent. Track your submissions, upload new music.</p><div class="mt-8 bg-black/40 p-6 rounded-2xl"><h3 class="text-xl font-semibold">📤 Upload new track</h3><div class="mt-4 space-y-3"><input type="text" placeholder="Track title" class="w-full p-2 rounded-xl bg-white/5 border border-purple-500/40"><input type="file" accept="audio/*" class="text-sm"><button id="fake-upload-btn" class="bg-purple-600 px-6 py-2 rounded-full mt-2 hover:bg-purple-500 transition">Upload & Send for Review</button></div></div><div class="mt-6"><h3 class="font-bold">Submission history</h3><ul class="mt-2 space-y-2"><li>🎧 "Midnight Echo" — under review</li><li>🎧 "Sunrise" — approved (distribution Q3)</li></ul><p class="text-purple-300 mt-6">✉️ Direct messaging: A&R team will reach out within 2 days.</p></div></div>${Footer()}</main>`;
     }
 
-    // INIT APP
+    // ----- BOOTSTRAP -----
     window.addEventListener('DOMContentLoaded', () => {
       appContainer = document.createElement('div');
       appContainer.id = 'spa-root';
       document.body.appendChild(appContainer);
-      const hash = window.location.hash.slice(1);
+      let hash = window.location.hash.slice(1);
       if (hash && pages[hash]) currentPage = hash;
+      else currentPage = 'home';
       render();
       window.addEventListener('popstate', (e) => {
         const pageHash = window.location.hash.slice(1);
