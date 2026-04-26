@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LegacySound | Where Sound Becomes Legacy</title>
+  <!-- Google Fonts + Tailwind + Framer Motion CDN (static build, all-in-one) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- custom config override for dark mode & luxe feel -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&family=Syne:wght@400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #05050A;
+      color: #EAEAEF;
+      scroll-behavior: smooth;
+    }
+    
+    h1, h2, h3, .font-display {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    
+    /* custom neon & waveform aesthetics */
+    .neon-glow {
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.5), 0 0 2px rgba(59,130,246,0.3);
+    }
+    .hover-neon:hover {
+      box-shadow: 0 0 18px rgba(139, 92, 246, 0.7);
+      transition: all 0.2s ease;
+    }
+    .wave-bg {
+      background: radial-gradient(circle at 20% 50%, rgba(88, 28, 135, 0.2) 0%, rgba(5,5,10,1) 70%);
+    }
+    .glass-card {
+      background: rgba(15, 15, 25, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 2rem;
+    }
+    .audio-wave {
+      background: repeating-linear-gradient(90deg, #a855f7, #3b82f6 10px, #a855f7 20px);
+      height: 2px;
+      width: 100%;
+    }
+    /* custom scroll */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0F0F17;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #7c3aed;
+      border-radius: 10px;
+    }
+    .artist-card {
+      transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+    .artist-card:hover {
+      transform: translateY(-8px);
+    }
+    button, a, .cursor-pointer {
+      transition: all 0.2s ease;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/framer-motion/10.16.4/framer-motion.js"></script>
+  <!-- simple audio preview placeholder (WaveSurfer not needed - inline audio) -->
+</head>
+<body class="bg-[#05050A] overflow-x-hidden">
+  <div id="root"></div>
+
+  <!-- full SPA implementation using vanilla JS + component state (no React but fully functional modern SPA) -->
+  <script>
+    // ---------- SPA ROUTER ----------
+    const pages = {
+      home: HomePage,
+      about: AboutPage,
+      artists: ArtistsPage,
+      services: ServicesPage,
+      hire: HirePage,
+      join: JoinPage,
+      careers: CareersPage,
+      contact: ContactPage,
+      dashboard: DashboardPage
+    };
+
+    let currentPage = 'home';
+    let appContainer = null;
+
+    function navigateTo(page, pushState = true) {
+      if (!pages[page]) page = 'home';
+      currentPage = page;
+      if (pushState) history.pushState({ page }, '', `#${page}`);
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function render() {
+      if (!appContainer) return;
+      const PageComponent = pages[currentPage];
+      if (PageComponent) {
+        appContainer.innerHTML = PageComponent();
+      } else {
+        appContainer.innerHTML = HomePage();
+      }
+      attachGlobalEventListeners();
+    }
+
+    function attachGlobalEventListeners() {
+      // nav links
+      document.querySelectorAll('[data-nav]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const page = link.getAttribute('data-nav');
+          navigateTo(page);
+        });
+      });
+      // demo CTA audio preview toggle mock
+      document.querySelectorAll('.play-preview-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const audioId = btn.getAttribute('data-track');
+          const audio = document.getElementById(audioId);
+          if (audio) {
+            if (audio.paused) audio.play();
+            else audio.pause();
+          }
+        });
+      });
+      // submit forms handling (prevent default + show toast)
+      const forms = document.querySelectorAll('.app-form');
+      forms.forEach(form => {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          alert('✨ Demo submitted / application received. Our A&R team will reach out within 48h.');
+          form.reset();
+        });
+      });
+    }
+
+    // ----- HELPER COMPONENTS (JSX like string templates) -----
+    const Header = () => `
+      <header class="fixed top-0 left-0 w-full z-50 px-6 md:px-12 py-5 bg-[#05050A]/80 backdrop-blur-xl border-b border-purple-900/30">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+          <div class="flex items-center gap-2 cursor-pointer" data-nav="home">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-blue-600 neon-glow"></div>
+            <span class="text-2xl font-display font-extrabold tracking-tight bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">LEGACYSOUND</span>
+          </div>
+          <nav class="hidden md:flex space-x-8 text-sm font-medium">
+            <a href="#" data-nav="home" class="hover:text-purple-400 transition">Home</a>
+            <a href="#" data-nav="about" class="hover:text-purple-400 transition">About</a>
+            <a href="#" data-nav="artists" class="hover:text-purple-400 transition">Artists</a>
+            <a href="#" data-nav="services" class="hover:text-purple-400 transition">Services</a>
+            <a href="#" data-nav="hire" class="hover:text-purple-400 transition">Hire Us</a>
+            <a href="#" data-nav="join" class="hover:text-purple-400 transition">Submit Demo</a>
+            <a href="#" data-nav="careers" class="hover:text-purple-400 transition">Careers</a>
+            <a href="#" data-nav="contact" class="hover:text-purple-400 transition">Contact</a>
+          </nav>
+          <div class="flex gap-3">
+            <a href="#" data-nav="dashboard" class="hidden md:block px-5 py-2 rounded-full border border-purple-500/60 text-sm hover:bg-purple-600/20">Artist Portal</a>
+            <button class="md:hidden text-white" id="mobileMenuBtn">☰</button>
+          </div>
+        </div>
+      </header>
+    `;
+
+    const Footer = () => `
+      <footer class="border-t border-purple-900/30 py-12 mt-24 px-6 bg-black/40">
+        <div class="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
+          <div><span class="text-2xl font-bold">LEGACYSOUND</span><p class="text-gray-400 text-sm mt-2">© 2025 — Global Music Collective. African-rooted, worldwide vision.</p></div>
+          <div><h4 class="font-bold mb-3">Explore</h4><ul class="space-y-2 text-gray-300 text-sm"><li><a href="#" data-nav="artists">Artists</a></li><li><a href="#" data-nav="services">Services</a></li><li><a href="#" data-nav="hire">Client Portal</a></li></ul></div>
+          <div><h4 class="font-bold mb-3">Connect</h4><ul class="space-y-2 text-gray-300 text-sm"><li>hello@legacysound.global</li><li>Nairobi / LA / London</li><li>IG: @legacysound</li></ul></div>
+          <div><h4 class="font-bold mb-3">Subscribe</h4><input type="email" placeholder="your@email.com" class="w-full p-2 rounded bg-white/10 border border-purple-500/40 text-sm"><button class="mt-2 w-full py-2 bg-purple-700 rounded-md text-sm">Stay tuned</button></div>
+        </div>
+      </footer>
+    `;
+
+    const WaveBg = () => `<div class="absolute inset-0 overflow-hidden pointer-events-none"><div class="wave-bg w-full h-full opacity-40"></div><div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#05050A] to-transparent"></div></div>`;
+
+    // ---- PAGE DEFINITIONS ----
+    function HomePage() {
+      return `
+        ${Header()}
+        <main class="pt-28">
+          <section class="relative min-h-[85vh] flex items-center px-6 md:px-12 overflow-hidden">
+            ${WaveBg()}
+            <div class="max-w-7xl mx-auto relative z-10">
+              <div class="max-w-3xl">
+                <h1 class="text-5xl md:text-7xl font-display font-black leading-tight">Where Sound Becomes <span class="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">Legacy</span></h1>
+                <p class="text-xl text-gray-300 mt-6">We produce, manage, and elevate world-class music talent. Global distribution, sync licensing & artist development.</p>
+                <div class="flex flex-wrap gap-5 mt-10">
+                  <a href="#" data-nav="hire" class="px-8 py-4 bg-gradient-to-r from-purple-700 to-indigo-800 rounded-full font-bold hover:scale-105 transition shadow-lg shadow-purple-600/30">Hire Our Team →</a>
+                  <a href="#" data-nav="join" class="px-8 py-4 border border-white/30 rounded-full backdrop-blur-sm font-semibold hover:bg-white/10">Submit Demo</a>
+                </div>
+              </div>
+            </div>
+            <div class="absolute right-0 top-1/4 w-96 h-96 bg-purple-600/20 blur-[100px] rounded-full"></div>
+          </section>
+
+          <!-- Featured artists -->
+          <section class="max-w-7xl mx-auto px-6 py-24">
+            <h2 class="text-4xl font-display font-bold mb-12 text-center">✧ Featured Artists ✧</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+              ${['Zahara M.', 'The Alchemist', 'Nyah & The Echoes'].map((name, idx) => `
+                <div class="glass-card p-5 artist-card cursor-pointer hover:border-purple-500/50">
+                  <div class="h-64 bg-gradient-to-br from-purple-800 to-blue-800 rounded-2xl flex items-center justify-center text-6xl">🎧</div>
+                  <h3 class="text-2xl font-bold mt-4">${name}</h3>
+                  <p class="text-gray-400">Alternative / Electronic</p>
+                  <button class="play-preview-btn mt-4 text-purple-300 text-sm" data-track="track${idx}">▶ Preview track</button>
+                  <audio id="track${idx}" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${idx+1}.mp3" preload="none"></audio>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+
+          <!-- Services Preview -->
+          <section class="max-w-7xl mx-auto px-6 py-16">
+            <div class="grid md:grid-cols-4 gap-6 text-center">
+              ${['Music Production', 'Artist Management', 'Global Distribution', 'Sync Licensing'].map(s => `<div class="glass-card p-6"><div class="text-4xl mb-3">🎛️</div><h4 class="font-bold">${s}</h4><p class="text-sm text-gray-300 mt-2">Industry-leading ${s.toLowerCase()}.</p></div>`).join('')}
+            </div>
+          </section>
+
+          <!-- Latest releases -->
+          <section class="max-w-7xl mx-auto px-6 py-16">
+            <h2 class="text-3xl font-bold mb-8">Latest Releases</h2>
+            <div class="space-y-4">
+              ${['LOST SIGNALS - 3.2M streams', 'MIDNIGHT VELVET - 1.8M streams', 'ECHO CHAMBER (remix)'].map(track => `<div class="glass-card p-4 flex justify-between items-center"><span>🎵 ${track}</span><button class="text-purple-400">▶ Play preview</button></div>`).join('')}
+            </div>
+          </section>
+
+          <div class="max-w-7xl mx-auto px-6 py-16 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 rounded-3xl text-center my-12 glass-card"><h3 class="text-3xl font-bold">Join the Next Wave of Global Talent</h3><a href="#" data-nav="join" class="inline-block mt-6 px-8 py-3 bg-purple-600 rounded-full">Apply Now →</a></div>
+          ${Footer()}
+        </main>
+      `;
+    }
+
+    function AboutPage() {
+      return `${Header()}
+      <main class="pt-32 max-w-5xl mx-auto px-6">
+        <div class="text-center"><h1 class="text-5xl font-black">Legacy of Sound</h1><div class="w-24 h-1 bg-purple-500 mx-auto my-6"></div></div>
+        <div class="grid md:grid-cols-2 gap-12 my-16">
+          <div><p class="text-gray-300 text-lg">Founded in 2020, LegacySound bridges African musical heritage with futuristic production. We are a premium music collective home to producers, engineers, and visionaries shaping global sonics. Our mission: empower authentic talent with world-class infrastructure.</p></div>
+          <div class="glass-card p-6"><h3 class="text-2xl font-bold">Given Ndumia</h3><p class="text-purple-300">Founder & Executive Producer</p><p>Grammy-nominated engineer, with a vision to redefine African contemporary music on a global stage.</p></div>
+        </div>
+        <div class="glass-card p-10 my-10"><h2 class="text-3xl font-bold">Our Timeline</h2><div class="mt-6 space-y-4"><div>🔹 2020 — Founded in Nairobi</div><div>🔹 2022 — First sync deal with Netflix</div><div>🔹 2024 — Opened LA & London branches</div><div>🔹 2025 — 15+ signed artists, 200M+ streams</div></div></div>
+        ${Footer()}</main>`;
+    }
+
+    function ArtistsPage() {
+      const artistList = [
+        { name: "KAMAU MWENYE", genre: "Afro-fusion / Soul", bio: "Soulful storytelling blending Kikuyu traditions and modern R&B." },
+        { name: "MILA V.", genre: "Electronic / Alt Pop", bio: "Berlin-based vocalist & producer, known for hypnotic soundscapes." },
+        { name: "THE ORACLE", genre: "Hip-Hop / Experimental", bio: "Lyrical architect, global collaborator." }
+      ];
+      return `${Header()}<main class="pt-32 max-w-7xl mx-auto px-6"><h1 class="text-5xl font-bold mb-12 text-center">Our Roster</h1><div class="grid md:grid-cols-3 gap-8">
+      ${artistList.map(art => `<div class="glass-card p-6 artist-card"><div class="h-56 bg-gradient-to-tr from-purple-700 to-indigo-600 rounded-xl flex items-center justify-center text-5xl">🎤</div><h2 class="text-2xl font-bold mt-4">${art.name}</h2><p class="text-purple-300">${art.genre}</p><p class="text-sm text-gray-300 mt-2">${art.bio}</p><div class="flex gap-3 mt-4"><button class="play-preview-btn text-sm border border-purple-400/50 px-3 py-1 rounded-full">Preview track</button><a href="#" class="text-purple-400">Instagram →</a></div><audio src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="none"></audio></div>`).join('')}
+      </div>${Footer()}</main>`;
+    }
+
+    function ServicesPage() {
+      const services = ['Music Production', 'Mixing & Mastering', 'Artist Development', 'Distribution', 'Sync Licensing (Film/Ads)'];
+      return `${Header()}<main class="pt-32 max-w-7xl mx-auto px-6"><h1 class="text-5xl font-bold">Premier Services</h1><p class="text-gray-300 max-w-2xl mt-4">End-to-end music solutions tailored for labels, independent artists, and global brands.</p><div class="grid md:grid-cols-2 gap-8 my-16">
+      ${services.map(s => `<div class="glass-card p-8 flex flex-col gap-2"><div class="text-5xl">✨</div><h3 class="text-2xl font-bold">${s}</h3><p>High-end ${s.toLowerCase()} with industry veterans. From sonic branding to Dolby Atmos mixes.</p><a href="#" data-nav="hire" class="text-purple-400 mt-4 inline-block">Work With Us →</a></div>`).join('')}
+      </div>${Footer()}</main>`;
+    }
+
+    function HirePage() {
+      return `${Header()}<main class="pt-32 max-w-7xl mx-auto px-6"><div class="grid md:grid-cols-2 gap-12"><div><h1 class="text-5xl font-bold">For Brands & Creators</h1><p class="text-xl mt-4">Sync licensing, original scores, sonic branding, and premium music production.</p><ul class="mt-8 space-y-3"><li>✓ 200+ successful sync placements (Netflix, Adidas, Apple)</li><li>✓ African talent edge — unique global sonic palette</li><li>✓ Fast turnaround, major-label quality</li></ul><a href="#" data-nav="contact" class="mt-8 inline-block px-8 py-3 bg-purple-600 rounded-full text-lg">Start a Project</a></div><div class="glass-card p-8"><h3 class="text-2xl font-bold">Past Work</h3><div class="mt-4 space-y-2"><p>🎬 "Nocturnal Africa" (Netflix Original) — score & supervision</p><p>📱 Nike "Afrobeat Runners" campaign</p><p>🎮 FIFA 24 soundtrack collaboration</p></div></div></div>${Footer()}</main>`;
+    }
+
+    function JoinPage() {
+      return `${Header()}<main class="pt-32 max-w-2xl mx-auto px-6"><div class="glass-card p-10"><h1 class="text-4xl font-bold">Submit Your Demo</h1><p class="text-gray-300 mt-2">Get discovered by LegacySound A&R. We're looking for genre-defying artists.</p><form class="app-form space-y-5 mt-8"><input type="text" placeholder="Full name" class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40" required><input type="email" placeholder="Email" class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40" required><select class="w-full p-3 rounded-xl bg-black/40 border border-purple-500/40"><option>Genre: Pop</option><option>Afrobeat</option><option>Hip Hop</option><option>Electronic</option></select><input type="text" placeholder="Link to your track (SoundCloud/YouTube/Drive)" class="w-full p-3 rounded-xl bg-black/40"><button type="submit" class="w-full py-3 bg-purple-700 rounded-xl font-bold">Get Discovered →</button></form></div>${Footer()}</main>`;
+    }
+
+    function CareersPage() {
+      return `${Header()}<main class="pt-32 max-w-4xl mx-auto px-6"><h1 class="text-5xl font-bold">Join the Collective</h1><p class="text-gray-300 mt-2">We're hiring producers, sound engineers, and creative visionaries.</p><div class="grid md:grid-cols-2 gap-6 my-12"><div class="glass-card p-6"><h3 class="text-xl font-bold">🎛️ Senior Producer</h3><p>Remote / Nairobi · Full-time</p><button class="mt-3 text-purple-400">Apply</button></div><div class="glass-card p-6"><h3 class="text-xl font-bold">🔊 Sound Engineer (Mixing)</h3><p>LA / London</p><button class="mt-3 text-purple-400">Apply</button></div><div class="glass-card p-6"><h3 class="text-xl font-bold">🎨 Creative Designer</h3><p>Global remote</p><button class="mt-3 text-purple-400">Apply</button></div></div><form class="app-form glass-card p-8 space-y-4"><h2 class="text-2xl font-bold">Send your application</h2><input placeholder="Name" class="w-full p-2 rounded bg-black/40 border"><input placeholder="Email" class="w-full p-2 rounded bg-black/40 border"><input placeholder="Role" class="w-full p-2 rounded bg-black/40 border"><textarea placeholder="Link to portfolio / resume" rows="3" class="w-full p-2 rounded bg-black/40 border"></textarea><button type="submit" class="bg-purple-600 p-3 rounded">Submit application</button></form>${Footer()}</main>`;
+    }
+    function ContactPage() {
+      return `${Header()}<main class="pt-32 max-w-5xl mx-auto px-6"><div class="grid md:grid-cols-2 gap-12"><div><h1 class="text-5xl font-bold">Let's connect</h1><p class="mt-4 text-gray-300">hello@legacysound.global<br>+1 (323) 677-8890<br>Los Angeles · Nairobi · London</p><div class="flex gap-5 mt-8"><span class="text-2xl cursor-pointer">📱 IG</span><span class="text-2xl">🐦 X</span><span class="text-2xl">🎵 TikTok</span></div></div><div class="glass-card p-8"><form class="app-form space-y-4"><input placeholder="Name" class="w-full p-3 rounded bg-black/40 border"><input placeholder="Email" class="w-full p-3 rounded bg-black/40 border"><textarea placeholder="Message" rows="4" class="w-full p-3 rounded bg-black/40 border"></textarea><button type="submit" class="w-full bg-purple-700 py-3 rounded-full">Send message</button></form></div></div>${Footer()}</main>`;
+    }
+
+    function DashboardPage() {
+      return `${Header()}<main class="pt-32 max-w-4xl mx-auto px-6"><div class="glass-card p-8"><h1 class="text-4xl font-bold">Artist Portal Demo</h1><p class="text-gray-300 mt-1">Welcome back, emerging talent. Track your submissions, upload new music.</p><div class="mt-8 bg-black/40 p-6 rounded-2xl"><h3 class="text-xl font-semibold">📤 Upload new track</h3><form class="app-form mt-4 space-y-3"><input type="text" placeholder="Track title" class="w-full p-2 bg-white/5 border rounded"><input type="file" accept="audio/*"><button type="submit" class="bg-purple-600 px-6 py-2 rounded-full mt-2">Upload & Send for Review</button></form></div><div class="mt-6"><h3 class="font-bold">Submission history</h3><ul class="mt-2 space-y-2"><li>🎧 "Midnight Echo" — under review</li><li>🎧 "Sunrise" — approved (distribution Q3)</li></ul><p class="text-purple-300 mt-6">✉️ Direct messaging: A&R team will reach out within 2 days.</p></div></div>${Footer()}</main>`;
+    }
+
+    // INIT APP
+    window.addEventListener('DOMContentLoaded', () => {
+      appContainer = document.createElement('div');
+      appContainer.id = 'spa-root';
+      document.body.appendChild(appContainer);
+      const hash = window.location.hash.slice(1);
+      if (hash && pages[hash]) currentPage = hash;
+      render();
+      window.addEventListener('popstate', (e) => {
+        const pageHash = window.location.hash.slice(1);
+        if (pages[pageHash]) navigateTo(pageHash, false);
+        else navigateTo('home', false);
+      });
+    });
+  </script>
+</body>
+</html>
